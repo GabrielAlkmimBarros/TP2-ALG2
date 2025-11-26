@@ -44,7 +44,7 @@ def mahalanobis(x, y, inv_cov):
 
 def mahalanobis_matrix(X):
     X = np.array(X, dtype=float)
-    n = X.shape[0]
+    n = x.shape[0]
 
     cov = np.cov(X, rowvar=False)
     inv_cov = inv(cov)
