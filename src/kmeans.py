@@ -1,7 +1,3 @@
-"""
-K-Means Clustering - Implementação do Zero
-Trabalho Prático 2 - Algoritmos II
-"""
 
 import numpy as np
 from typing import Literal
