@@ -5,6 +5,12 @@ Trabalho Prático 2 - Algoritmos II
 
 import numpy as np
 from typing import Literal
+import sys
+import os
+
+# Adiciona o diretório pai ao path para importar minkowski
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from minkowski import minkowski, mahalanobis, mahalanobis_matrix
 
 
 class KMeans:
@@ -35,7 +41,7 @@ class KMeans:
         max_iter: int = 300,
         tol: float = 1e-4,
         random_state: int = None,
-        distance_metric: Literal['euclidean', 'manhattan', 'minkowski'] = 'euclidean',
+        distance_metric: Literal['euclidean', 'manhattan', 'minkowski', 'mahalanobis'] = 'euclidean',
         p: float = 2.0,
         init: Literal['random', 'kmeans++'] = 'kmeans++'
     ):
@@ -52,6 +58,7 @@ class KMeans:
         self.labels_ = None
         self.inertia_ = None  # Soma das distâncias ao quadrado
         self.n_iter_ = 0
+        self.inv_cov_ = None  # Matriz de covariância inversa para Mahalanobis
         
     def _set_random_state(self):
         """Define a seed para reprodutibilidade."""
@@ -61,6 +68,7 @@ class KMeans:
     def _compute_distance(self, X: np.ndarray, centroids: np.ndarray) -> np.ndarray:
         """
         Calcula a distância entre cada ponto e cada centroide.
+        Usa as funções do módulo minkowski.py
         
         Retorna:
         --------
@@ -72,19 +80,27 @@ class KMeans:
         
         for i, centroid in enumerate(centroids):
             if self.distance_metric == 'euclidean':
-                # Distância Euclidiana: sqrt(sum((x - c)^2))
-                distances[:, i] = np.sqrt(np.sum((X - centroid) ** 2, axis=1))
+                # Distância Euclidiana: Minkowski com p=2
+                for j in range(n_samples):
+                    distances[j, i] = minkowski(X[j], centroid, p=2)
             
             elif self.distance_metric == 'manhattan':
-                # Distância Manhattan: sum(|x - c|)
-                distances[:, i] = np.sum(np.abs(X - centroid), axis=1)
+                # Distância Manhattan: Minkowski com p=1
+                for j in range(n_samples):
+                    distances[j, i] = minkowski(X[j], centroid, p=1)
             
             elif self.distance_metric == 'minkowski':
-                # Distância de Minkowski: (sum(|x - c|^p))^(1/p)
-                distances[:, i] = np.power(
-                    np.sum(np.power(np.abs(X - centroid), self.p), axis=1),
-                    1 / self.p
-                )
+                # Distância de Minkowski genérica
+                for j in range(n_samples):
+                    distances[j, i] = minkowski(X[j], centroid, p=self.p)
+            
+            elif self.distance_metric == 'mahalanobis':
+                # Distância de Mahalanobis
+                if self.inv_cov_ is None:
+                    raise ValueError("Matriz de covariância inversa não calculada. Execute fit() primeiro.")
+                for j in range(n_samples):
+                    distances[j, i] = mahalanobis(X[j], centroid, self.inv_cov_)
+            
             else:
                 raise ValueError(f"Métrica de distância '{self.distance_metric}' não suportada.")
         
@@ -179,6 +195,10 @@ class KMeans:
         """
         self._set_random_state()
         X = np.array(X, dtype=np.float64)
+        
+        # Calcula matriz de covariância inversa para Mahalanobis
+        if self.distance_metric == 'mahalanobis':
+            _, self.inv_cov_ = mahalanobis_matrix(X)
         
         # Inicialização dos centroides
         if self.init == 'random':
