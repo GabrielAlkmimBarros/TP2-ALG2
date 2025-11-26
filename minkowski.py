@@ -44,10 +44,18 @@ def mahalanobis(x, y, inv_cov):
 
 def mahalanobis_matrix(X):
     X = np.array(X, dtype=float)
-    n = x.shape[0]
+    n = X.shape[0] 
 
-    cov = np.cov(X, rowvar=False)
-    inv_cov = inv(cov)
+    
+    mu = np.mean(X, axis=0)
+    
+
+
+    X_centered = X - mu
+    
+    cov = np.dot(X_centered.T, X_centered) / (n - 1)
+    
+    inv_cov = inv(cov) 
 
     dist_matrix = np.zeros((n,n))
 
