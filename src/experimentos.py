@@ -4,7 +4,7 @@ import pandas as pd
 from typing import Callable, Any, Dict
 
 # === Importação dos seus módulos (mantidos do original) ===
-from geracao_dados import generate_sklearn_datasets, generate_multivariate_normal_datasets
+from geracao_dados import generate_sklearn_datasets, generate_multivariate_normal_datasets, load_real_datasets
 from kcenters import k_centers_maxmin, k_centers_refinement, _get_max_radius, _get_distance_matrix
 from distancias import minkowski, mahalanobis
 
@@ -84,8 +84,9 @@ def run_experiment(
 def main_experiment_loop():
 
     datasets=[]
-    datasets += generate_sklearn_datasets()           # 30 bases
-    datasets += generate_multivariate_normal_datasets() # +10 bases → total = 40
+    datasets += generate_sklearn_datasets()           # 30 bases sintéticas
+    datasets += generate_multivariate_normal_datasets() # +10 bases sintéticas
+    datasets += load_real_datasets()                   # +11 bases reais UCI
 
     print(f"\n🔵 Total de bases geradas = {len(datasets)}\n")
 

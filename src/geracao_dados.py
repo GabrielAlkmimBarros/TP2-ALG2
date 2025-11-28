@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import os
 from sklearn.datasets import make_moons, make_circles, make_blobs
 from sklearn.preprocessing import StandardScaler
 from typing import List, Tuple, Dict, Any
@@ -6,6 +8,9 @@ from typing import List, Tuple, Dict, Any
 # --- Configurações ---
 MIN_SAMPLES = 700 
 N_VARIATIONS = 5  # 5 conjuntos por tipo Scikit-Learn
+
+# Caminho base para os dados reais (relativo ao diretório src/)
+REAL_DATA_BASE_PATH = os.path.join(os.path.dirname(__file__), "..", "real_data", "real_data")
 
 def generate_sklearn_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]:
     """
@@ -129,4 +134,148 @@ def generate_multivariate_normal_datasets() -> List[Tuple[np.ndarray, np.ndarray
         
         datasets_list.append((X, y, k, f"MultiVar_{name}_{i+1}"))
         
+    return datasets_list
+
+
+def load_real_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]:
+    """
+    Carrega os 12 datasets reais do UCI Machine Learning Repository.
+    
+    Retorna: Lista de (X, y_true, k, nome_dataset).
+    """
+    datasets_list = []
+    
+    # Configuração dos datasets: (pasta, arquivo, coluna_alvo, k, nome)
+    REAL_DATASETS_CONFIG = [
+        {
+            "path": "banknote+authentication",
+            "file": "banknote.csv",
+            "target": "class",
+            "k": 2,
+            "name": "UCI_Banknote"
+        },
+        {
+            "path": "optical+recognition+of+handwritten+digits",
+            "file": "optdigits.csv",
+            "target": "digit",
+            "k": 10,
+            "name": "UCI_OptDigits"
+        },
+        {
+            "path": "wine+quality",
+            "file": "winequality_red.csv",
+            "target": "quality",
+            "k": 6,
+            "name": "UCI_WineRed"
+        },
+        {
+            "path": "wine+quality",
+            "file": "winequality_white.csv",
+            "target": "quality",
+            "k": 7,
+            "name": "UCI_WineWhite"
+        },
+        {
+            "path": "taiwanese+bankruptcy+prediction",
+            "file": "bankruptcy.csv",
+            "target": "bankrupt",
+            "k": 2,
+            "name": "UCI_Bankruptcy"
+        },
+        {
+            "path": "secom",
+            "file": "secom.csv",
+            "target": "label",
+            "k": 2,
+            "name": "UCI_SECOM"
+        },
+        {
+            "path": "drug+consumption+quantified",
+            "file": "drug_consumption.csv",
+            "target": "Cannabis",
+            "k": 7,
+            "name": "UCI_DrugConsumption"
+        },
+        {
+            "path": "myocardial+infarction+complications",
+            "file": "mi.csv",
+            "target": "target",
+            "k": 8,
+            "name": "UCI_MyocardialInfarction"
+        },
+        {
+            "path": "estimation+of+obesity+levels+based+on+eating+habits+and+physical+condition",
+            "file": "obesity.csv",
+            "target": "NObeyesdad",
+            "k": 7,
+            "name": "UCI_Obesity"
+        },
+        {
+            "path": "cardiotocography",
+            "file": "cardiotocography.csv",
+            "target": "NSP",
+            "k": 3,
+            "name": "UCI_Cardiotocography"
+        },
+        {
+            "path": "beed_+bangalore+eeg+epilepsy+dataset",
+            "file": "BEED_Data.csv",
+            "target": "y",
+            "k": 4,
+            "name": "UCI_BEED_EEG"
+        },
+    ]
+    
+    for config in REAL_DATASETS_CONFIG:
+        try:
+            filepath = os.path.join(REAL_DATA_BASE_PATH, config["path"], config["file"])
+            
+            # Carrega o CSV
+            df = pd.read_csv(filepath)
+            
+            # Identifica a coluna alvo
+            target_col = config["target"]
+            
+            # Verifica se a coluna alvo existe
+            if target_col not in df.columns:
+                # Tenta encontrar uma coluna similar
+                possible_targets = [col for col in df.columns if target_col.lower() in col.lower()]
+                if possible_targets:
+                    target_col = possible_targets[0]
+                else:
+                    print(f"⚠️ Coluna '{config['target']}' não encontrada em {config['name']}. Colunas: {df.columns.tolist()}")
+                    continue
+            
+            # Separa features e target
+            y = df[target_col].values
+            X = df.drop(columns=[target_col])
+            
+            # Remove colunas não numéricas
+            X = X.select_dtypes(include=[np.number])
+            
+            # Trata valores faltantes (substitui por média da coluna)
+            X = X.fillna(X.mean())
+            
+            # Converte para numpy array
+            X = X.values.astype(float)
+            
+            # Codifica labels se forem strings
+            if y.dtype == object:
+                from sklearn.preprocessing import LabelEncoder
+                le = LabelEncoder()
+                y = le.fit_transform(y)
+            
+            # Padroniza os dados
+            X = StandardScaler().fit_transform(X)
+            
+            k = config["k"]
+            name = config["name"]
+            
+            datasets_list.append((X, y, k, name))
+            print(f"✅ Carregado: {name} | Shape: {X.shape} | k={k}")
+            
+        except Exception as e:
+            print(f"❌ Erro ao carregar {config['name']}: {e}")
+            continue
+    
     return datasets_list
