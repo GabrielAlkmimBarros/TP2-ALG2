@@ -5,19 +5,15 @@ from sklearn.datasets import make_moons, make_circles, make_blobs
 from sklearn.preprocessing import StandardScaler
 from typing import List, Tuple, Dict, Any
 
-# --- Configurações ---
+
 MIN_SAMPLES = 700 
 N_VARIATIONS = 5  # 5 conjuntos por tipo Scikit-Learn
 
-# Caminho base para os dados reais (relativo ao diretório src/)
+# Caminho base para os dados reais 
 REAL_DATA_BASE_PATH = os.path.join(os.path.dirname(__file__), "..", "real_data", "real_data")
 
 def generate_sklearn_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]:
-    """
-    Gera 30 conjuntos de dados (5 variações para 6 tipos) usando funções do Scikit-Learn.
-    
-    Retorna: Lista de (X, y_true, k, nome_tipo).
-    """
+
     datasets_list = []
     
     DATASET_CONFIGS = [
@@ -37,9 +33,9 @@ def generate_sklearn_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]
             random_seed = i + 10 
             
             if base_name == "NoStructure":
-                # Gera dados uniformes aleatórios entre 0 e 1 (sem estrutura)
+                
                 X = config["func"](MIN_SAMPLES, 2)
-                y = np.zeros(MIN_SAMPLES) # Rótulos arbitrários, não usados para k, apenas para ARI base
+                y = np.zeros(MIN_SAMPLES) 
             
             elif base_name == "NoisyCircles":
                 X, y = config["func"](n_samples=MIN_SAMPLES, factor=0.5, noise=0.05 + i*0.02, random_state=random_seed)
@@ -48,22 +44,22 @@ def generate_sklearn_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]
                 X, y = config["func"](n_samples=MIN_SAMPLES, noise=0.05 + i*0.02, random_state=random_seed)
             
             elif base_name == "StandardBlobs":
-                # Varia o desvio padrão de todos os clusters juntos
+                
                 X, y = config["func"](n_samples=MIN_SAMPLES, centers=k, cluster_std=1.0 + i*0.2, random_state=random_seed)
 
             elif base_name == "VariedBlobs":
-                # Varia o desvio padrão de cada cluster individualmente
+                
                 stds = [1.0, 2.5 - i*0.2, 0.5 + i*0.1]
                 X, y = config["func"](n_samples=MIN_SAMPLES, centers=k, cluster_std=stds, random_state=random_seed)
                 
             elif base_name == "AnisotropicBlobs":
-                # Gera blobs padrão e aplica transformação linear
+                
                 X_base, y = config["func"](n_samples=MIN_SAMPLES, random_state=random_seed)
-                # Varia a transformação levemente (aumenta o alongamento)
+               
                 transformation = np.array(config["transform"]) + i * 0.1 
                 X = np.dot(X_base, transformation)
             
-            # Padroniza os dados (Média 0, Desvio Padrão 1)
+           
             X = StandardScaler().fit_transform(X)
             
             dataset_name = f"SKL_{base_name}_{i+1}"
@@ -72,15 +68,13 @@ def generate_sklearn_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]
     return datasets_list
 
 def generate_multivariate_normal_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]:
-    """
-    Gera 10 conjuntos de dados usando Distribuição Normal Multivariada (2D).
-    """
+
     datasets_list = []
     
-    # Parâmetros fixos
+ 
     k = 4 # Exemplo de 4 centros
     
-    # Cenários de forma e sobreposição (Nome, Médias, Covariâncias)
+  
     SCENARIOS = [
         # 1. Circular e Baixa Sobreposição
         ("Circular_Low", 
@@ -109,19 +103,19 @@ def generate_multivariate_normal_datasets() -> List[Tuple[np.ndarray, np.ndarray
     ]
 
     for i in range(10): 
-        # Alterna entre os cenários
+        
         scenario_index = i % len(SCENARIOS)
         name, means, covs = SCENARIOS[scenario_index]
         
-        # Gera o dobro de amostras para o teste de sobreposição (i//5 controla isso)
+        
         n_per_cluster = (MIN_SAMPLES // k) + (i//5 * 100)
         X_all = []
         y_all = []
         
         for j in range(k):
-            # Adiciona ruído leve ao centro (para variar as 10 execuções)
+            
             current_mean = means[j] + np.random.normal(0, 0.1, 2)
-            # Amostra pontos para o cluster j
+            
             X_cluster = np.random.multivariate_normal(current_mean, covs[j], size=n_per_cluster)
             X_all.append(X_cluster)
             y_all.append(np.full(n_per_cluster, j))
@@ -129,7 +123,7 @@ def generate_multivariate_normal_datasets() -> List[Tuple[np.ndarray, np.ndarray
         X = np.concatenate(X_all)
         y = np.concatenate(y_all)
         
-        # Padroniza os dados
+        
         X = StandardScaler().fit_transform(X)
         
         datasets_list.append((X, y, k, f"MultiVar_{name}_{i+1}"))
@@ -138,11 +132,7 @@ def generate_multivariate_normal_datasets() -> List[Tuple[np.ndarray, np.ndarray
 
 
 def load_real_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]:
-    """
-    Carrega os 12 datasets reais do UCI Machine Learning Repository.
-    
-    Retorna: Lista de (X, y_true, k, nome_dataset).
-    """
+
     datasets_list = []
     
     # Configuração dos datasets: (pasta, arquivo, coluna_alvo, k, nome)
@@ -230,33 +220,30 @@ def load_real_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]:
         try:
             filepath = os.path.join(REAL_DATA_BASE_PATH, config["path"], config["file"])
             
-            # Carrega o CSV
+
             df = pd.read_csv(filepath)
             
-            # Identifica a coluna alvo
             target_col = config["target"]
             
-            # Verifica se a coluna alvo existe
             if target_col not in df.columns:
-                # Tenta encontrar uma coluna similar
                 possible_targets = [col for col in df.columns if target_col.lower() in col.lower()]
                 if possible_targets:
                     target_col = possible_targets[0]
                 else:
-                    print(f"⚠️ Coluna '{config['target']}' não encontrada em {config['name']}. Colunas: {df.columns.tolist()}")
+                    print(f"Coluna '{config['target']}' não encontrada em {config['name']}. Colunas: {df.columns.tolist()}")
                     continue
             
-            # Separa features e target
+
             y = df[target_col].values
             X = df.drop(columns=[target_col])
             
-            # Remove colunas não numéricas
+        
             X = X.select_dtypes(include=[np.number])
             
-            # Trata valores faltantes (substitui por média da coluna)
+ 
             X = X.fillna(X.mean())
             
-            # Converte para numpy array
+   
             X = X.values.astype(float)
             
             # Codifica labels se forem strings
@@ -265,17 +252,17 @@ def load_real_datasets() -> List[Tuple[np.ndarray, np.ndarray, int, str]]:
                 le = LabelEncoder()
                 y = le.fit_transform(y)
             
-            # Padroniza os dados
+
             X = StandardScaler().fit_transform(X)
             
             k = config["k"]
             name = config["name"]
             
             datasets_list.append((X, y, k, name))
-            print(f"✅ Carregado: {name} | Shape: {X.shape} | k={k}")
+            print(f"Carregado: {name} | Shape: {X.shape} | k={k}")
             
         except Exception as e:
-            print(f"❌ Erro ao carregar {config['name']}: {e}")
+            print(f"Erro ao carregar {config['name']}: {e}")
             continue
     
     return datasets_list

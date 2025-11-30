@@ -5,13 +5,11 @@ import seaborn as sns
 
 sns.set_theme(style="whitegrid",font_scale=1.15)
 
-# ==============================================
-# 1) Carregamento oficial
-# ==============================================
+
 def load_results(file):
     df = pd.read_csv(file)
 
-    # Garante consistência dos nomes
+
     df["Algorithm"] = df["Algorithm"].replace({
         "KMeans_SKL":"KMeans", "kmeans":"KMeans",
         "MaxMin":"KCenters-MaxMin",
@@ -23,12 +21,9 @@ def load_results(file):
     return df
 
 
-# ==============================================
-# 2) TABELAS — para PDF/TCC
-# ==============================================
+
 def gerar_tabelas(df):
 
-    # === AGRUPAMENTO GLOBAL POR ALGORITMO + MÉTRICA ===
     resumo_geral = df.groupby(["Algorithm","Metric"]).agg(
         Silhouette_mean=('Silhouette','mean'),
         Silhouette_std=('Silhouette','std'),
@@ -64,12 +59,10 @@ def gerar_tabelas(df):
 
 
 
-# ==============================================
-# 3) GRÁFICOS (todos corrigidos)
-# ==============================================
+
 def gerar_graficos(df):
 
-    # 3.1 Performance por algoritmo + métrica
+
     plt.figure(figsize=(13,5))
     sns.barplot(df,x="Algorithm",y="Silhouette",hue="Metric")
     plt.title("Silhouette — Algoritmo × Métrica")
@@ -85,14 +78,14 @@ def gerar_graficos(df):
     plt.title("Tempo — Algoritmo × Métrica")
     plt.ylabel("Segundos"); plt.savefig("03_tempo_alg_met.png",dpi=300); plt.close()
 
-    # 3.2 Refinement Δ — gráfico exclusivo (SEM KMEANS)
+
     df_ref = df[df["Algorithm"]=="KCenters-Refinement"].dropna(subset=["Delta_Ratio"])
     plt.figure(figsize=(12,5))
     sns.lineplot(df_ref,x="Delta_Ratio",y="Silhouette",hue="Metric",marker="o")
     plt.title("Impacto do Δ — KCenters Refinement")
     plt.savefig("04_refinement_delta.png",dpi=300); plt.close()
 
-    # 3.3 Melhor KCenters vs KMeans global (COMPARAÇÃO FINAL)
+
     kc = df[df["Algorithm"].str.contains("KCenters")].groupby("Dataset")["Silhouette"].max()
     km = df[df["Algorithm"]=="KMeans"].groupby("Dataset")["Silhouette"].mean()
 
@@ -102,16 +95,14 @@ def gerar_graficos(df):
     plt.ylabel("Silhouette Média")
     plt.savefig("05_kmeans_vs_kcenters.png",dpi=300); plt.close()
 
-    # 3.4 Ranking geral de métricas
+
     plt.figure(figsize=(12,5))
     sns.barplot(df,x="Metric",y="Silhouette",palette="mako")
     plt.title("Ranking de Métricas — Média Global Silhouette")
     plt.savefig("06_metric_rank.png",dpi=300); plt.close()
 
 
-# ==============================================
-# 4) Resumo automático textual
-# ==============================================
+
 def resumo_automatico(df):
     print("\n=============== RESUMO ANALÍTICO ===============")
     print(f"Melhor algoritmo no geral: {df.groupby('Algorithm')['Silhouette'].mean().idxmax()}")
@@ -120,9 +111,7 @@ def resumo_automatico(df):
     print(f"KMeans comparação pronta — veja: 05_kmeans_vs_kcenters.png")
 
 
-# ==============================================
-# EXECUÇÃO
-# ==============================================
+
 file = "RESULTADOS_FULL.csv"
 df = load_results(file)
 
@@ -130,4 +119,4 @@ gerar_tabelas(df)
 gerar_graficos(df)
 resumo_automatico(df)
 
-print("\n✔ Concluído. Todas as tabelas + gráficos gerados.")
+print("\nConcluído. Todas as tabelas + gráficos gerados.")
